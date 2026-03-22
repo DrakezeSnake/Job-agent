@@ -1,0 +1,18 @@
+{
+  "job_titles": ["Software Engineer", "Backend Engineer"],
+  "location": "Remote",
+  "salary_min": 120000,
+  "experience_years": 5,
+  "skills": ["Python", "AWS", "PostgreSQL"],
+  "blacklisted_companies": [],
+  "max_applications_per_run": 20,
+  "headless": false,
+  "boards": ["linkedin", "indeed", "glassdoor"],
+  "delay_between_applications_seconds": 45,
+  "session_dir": "data/sessions",
+  "credentials": {
+    "linkedin": {"email": "", "password": ""},
+    "indeed": {"email": "", "password": ""},
+    "glassdoor": {"email": "", "password": ""}
+  }
+}

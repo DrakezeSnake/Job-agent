@@ -1,0 +1,48 @@
+{
+  "personal": {
+    "name": "Your Name",
+    "email": "you@example.com",
+    "phone": "+1 (555) 000-0000",
+    "linkedin": "https://linkedin.com/in/yourprofile",
+    "github": "https://github.com/yourusername"
+  },
+  "summary": "Experienced software engineer with 5+ years building scalable backend systems. Passionate about clean architecture, developer experience, and delivering reliable products at scale.",
+  "experience": [
+    {
+      "company": "Example Corp",
+      "title": "Senior Software Engineer",
+      "start": "Jan 2022",
+      "end": "Present",
+      "bullets": [
+        "Led redesign of data ingestion pipeline reducing latency by 40%",
+        "Mentored 3 junior engineers and ran weekly technical design reviews",
+        "Introduced OpenTelemetry-based observability across 12 microservices"
+      ]
+    },
+    {
+      "company": "Startup Inc",
+      "title": "Software Engineer",
+      "start": "Jun 2019",
+      "end": "Dec 2021",
+      "bullets": [
+        "Built REST APIs serving 5M+ requests per day using Python and FastAPI",
+        "Migrated monolithic PostgreSQL schema to event-driven architecture with Kafka",
+        "Reduced infrastructure costs by 30% through AWS resource optimisation"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "school": "State University",
+      "degree": "B.S. Computer Science",
+      "year": "2019"
+    }
+  ],
+  "skills": [
+    "Python", "Go", "TypeScript", "AWS", "PostgreSQL", "Redis",
+    "Kafka", "Docker", "Kubernetes", "FastAPI", "Django", "React"
+  ],
+  "certifications": [
+    "AWS Certified Solutions Architect – Associate"
+  ]
+}
