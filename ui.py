@@ -353,10 +353,21 @@ with gr.Blocks(title="Job Agent") as demo:
         with gr.Tab("Run"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    boards_cb = gr.CheckboxGroup(
+                    gr.Markdown("**General Boards**")
+                    boards_general = gr.CheckboxGroup(
                         choices=["linkedin", "indeed", "glassdoor"],
                         value=["linkedin"],
-                        label="Job Boards",
+                        label="",
+                    )
+                    gr.Markdown("**Gaming Boards**")
+                    boards_gaming = gr.CheckboxGroup(
+                        choices=[
+                            "hitmarker", "gamesindustry", "gracklehq",
+                            "workwithindies", "remotegamejobs", "gamescareer",
+                            "gamesjobsdirect", "gamejobsco", "8bit", "ingamejob",
+                        ],
+                        value=[],
+                        label="",
                     )
                     dry_run_chk = gr.Checkbox(label="Dry Run (search only, no submissions)", value=False)
                     headless_chk = gr.Checkbox(label="Headless Browser (no visible window)", value=False)
@@ -371,9 +382,12 @@ with gr.Blocks(title="Job Agent") as demo:
                         placeholder="Log output appears here when the agent runs...",
                     )
 
+            def _merge_boards(gen, gaming):
+                return (gen or []) + (gaming or [])
+
             start_btn.click(
-                run_agent,
-                inputs=[boards_cb, dry_run_chk, headless_chk, limit_num],
+                lambda gen, gam, dry, head, lim: run_agent(_merge_boards(gen, gam), dry, head, lim),
+                inputs=[boards_general, boards_gaming, dry_run_chk, headless_chk, limit_num],
                 outputs=[log_box],
             )
 

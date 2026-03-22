@@ -19,6 +19,18 @@ from src.config import UserPreferences
 from src.database.repository import JobRepository
 from src.database.schema import init_db
 from src.job_boards.base import JobBoard, JobListing
+from src.job_boards.gaming_boards import (
+    EightBit,
+    GameJobsCo,
+    GamesCareer,
+    GamesIndustry,
+    GamesJobsDirect,
+    GrackleHQ,
+    Hitmarker,
+    InGameJob,
+    RemoteGameJobs,
+    WorkWithIndies,
+)
 from src.job_boards.glassdoor import Glassdoor
 from src.job_boards.indeed import Indeed
 from src.job_boards.linkedin import LinkedIn
@@ -30,6 +42,16 @@ BOARD_MAP: dict[str, Type[JobBoard]] = {
     "linkedin": LinkedIn,
     "indeed": Indeed,
     "glassdoor": Glassdoor,
+    "hitmarker": Hitmarker,
+    "gamesindustry": GamesIndustry,
+    "gracklehq": GrackleHQ,
+    "workwithindies": WorkWithIndies,
+    "remotegamejobs": RemoteGameJobs,
+    "gamescareer": GamesCareer,
+    "gamesjobsdirect": GamesJobsDirect,
+    "gamejobsco": GameJobsCo,
+    "8bit": EightBit,
+    "ingamejob": InGameJob,
 }
 
 
