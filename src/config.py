@@ -26,6 +26,11 @@ class BoardCredentials(BaseModel):
     glassdoor: Credentials = Field(default_factory=Credentials)
 
 
+class GoogleCredentials(BaseModel):
+    email: str = ""
+    password: str = ""
+
+
 class UserPreferences(BaseModel):
     job_titles: list[str] = Field(default_factory=list)
     location: str = "Remote"
@@ -39,6 +44,8 @@ class UserPreferences(BaseModel):
     delay_between_applications_seconds: int = 45
     session_dir: str = "data/sessions"
     credentials: BoardCredentials = Field(default_factory=BoardCredentials)
+    use_google_login: bool = False
+    google_credentials: GoogleCredentials = Field(default_factory=GoogleCredentials)
 
     # Loaded from environment
     anthropic_api_key: str = ""

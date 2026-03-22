@@ -102,12 +102,73 @@ def run_agent(selected_boards: list[str], dry_run: bool, headless: bool, limit: 
     yield "\n".join(lines)
 
 
+# ── Apply by URL tab ─────────────────────────────────────────────────────────
+
+
+def apply_url(job_url: str, job_title: str, job_company: str, dry_run: bool):
+    """Generator: applies to a single job URL and streams log output."""
+    if not job_url.strip():
+        yield "Please enter a job URL."
+        return
+
+    log_q: queue.Queue[str | None] = queue.Queue()
+
+    def log_fn(text: str) -> None:
+        clean = re.sub(r"\[/?[^\]]*\]", "", text).strip()
+        if clean:
+            log_q.put(clean)
+
+    def thread_target() -> None:
+        async def _run() -> None:
+            from src.config import load_config
+            from src.engine import ApplicationEngine
+
+            try:
+                prefs = load_config(CONFIG_PATH)
+                engine = ApplicationEngine(
+                    prefs=prefs,
+                    dry_run=dry_run,
+                    log_fn=log_fn,
+                )
+                await engine.run_single_url(
+                    url=job_url.strip(),
+                    title=job_title.strip(),
+                    company=job_company.strip(),
+                )
+            except Exception as exc:
+                log_fn(f"ERROR: {exc}")
+            finally:
+                log_q.put(None)
+
+        asyncio.run(_run())
+
+    t = threading.Thread(target=thread_target, daemon=True)
+    t.start()
+
+    lines: list[str] = []
+    while True:
+        try:
+            msg = log_q.get(timeout=0.4)
+            if msg is None:
+                break
+            lines.append(msg)
+            yield "\n".join(lines)
+        except queue.Empty:
+            if not t.is_alive():
+                break
+            yield "\n".join(lines)
+
+    lines.append("─── Done ───")
+    yield "\n".join(lines)
+
+
 # ── Settings tab ─────────────────────────────────────────────────────────────
 
 
 def settings_load():
     cfg = _load_json(CONFIG_PATH)
     creds = cfg.get("credentials", {})
+    gcreds = cfg.get("google_credentials", {})
     return (
         _list_to_str(cfg.get("job_titles", [])),
         cfg.get("location", "Remote"),
@@ -123,6 +184,9 @@ def settings_load():
         creds.get("indeed", {}).get("password", ""),
         creds.get("glassdoor", {}).get("email", ""),
         creds.get("glassdoor", {}).get("password", ""),
+        cfg.get("use_google_login", False),
+        gcreds.get("email", ""),
+        gcreds.get("password", ""),
     )
 
 
@@ -130,6 +194,7 @@ def settings_save(
     job_titles, location, salary_min, experience_years, skills, blacklisted,
     max_apps, delay,
     li_email, li_pass, in_email, in_pass, gl_email, gl_pass,
+    use_google, g_email, g_pass,
 ):
     cfg = _load_json(CONFIG_PATH)
     cfg["job_titles"] = _str_to_list(job_titles)
@@ -150,6 +215,8 @@ def settings_save(
     cfg["credentials"]["indeed"]["password"] = in_pass
     cfg["credentials"]["glassdoor"]["email"] = gl_email
     cfg["credentials"]["glassdoor"]["password"] = gl_pass
+    cfg["use_google_login"] = bool(use_google)
+    cfg["google_credentials"] = {"email": g_email, "password": g_pass}
     _save_json(CONFIG_PATH, cfg)
     return "Settings saved!"
 
@@ -310,7 +377,41 @@ with gr.Blocks(title="Job Agent") as demo:
                 outputs=[log_box],
             )
 
-        # ── Tab 2: Settings ─────────────────────────────────────────────────
+        # ── Tab 2: Apply by URL ─────────────────────────────────────────────
+        with gr.Tab("Apply by URL"):
+            gr.Markdown("Paste any job posting link and the agent will apply to it directly.")
+            with gr.Row():
+                with gr.Column(scale=1):
+                    url_input = gr.Textbox(
+                        label="Job URL",
+                        placeholder="https://www.linkedin.com/jobs/view/... or any careers page",
+                    )
+                    url_title = gr.Textbox(
+                        label="Job Title (optional — auto-detected if blank)",
+                        placeholder="e.g. Art Director",
+                    )
+                    url_company = gr.Textbox(
+                        label="Company (optional — auto-detected if blank)",
+                        placeholder="e.g. Riot Games",
+                    )
+                    url_dry_run = gr.Checkbox(label="Dry Run (no actual submission)", value=False)
+                    url_btn = gr.Button("Apply to This Job", variant="primary", size="lg")
+                with gr.Column(scale=2):
+                    url_log = gr.Textbox(
+                        label="Live Log",
+                        lines=20,
+                        max_lines=20,
+                        autoscroll=True,
+                        placeholder="Log output appears here...",
+                    )
+
+            url_btn.click(
+                apply_url,
+                inputs=[url_input, url_title, url_company, url_dry_run],
+                outputs=[url_log],
+            )
+
+        # ── Tab 3: Settings ─────────────────────────────────────────────────
         with gr.Tab("Settings"):
             with gr.Row():
                 with gr.Column():
@@ -325,7 +426,7 @@ with gr.Blocks(title="Job Agent") as demo:
                     s_delay = gr.Number(label="Delay Between Applications (seconds)")
 
                 with gr.Column():
-                    gr.Markdown("### Job Board Credentials")
+                    gr.Markdown("### Job Board Credentials (email/password)")
                     gr.Markdown("**LinkedIn**")
                     s_li_email = gr.Textbox(label="Email")
                     s_li_pass = gr.Textbox(label="Password", type="password")
@@ -335,6 +436,12 @@ with gr.Blocks(title="Job Agent") as demo:
                     gr.Markdown("**Glassdoor**")
                     s_gl_email = gr.Textbox(label="Email")
                     s_gl_pass = gr.Textbox(label="Password", type="password")
+                    gr.Markdown("---")
+                    gr.Markdown("### Google Login (optional)")
+                    gr.Markdown("Use 'Continue with Google' on all boards instead of email/password above.")
+                    s_use_google = gr.Checkbox(label="Use Google Login", value=False)
+                    s_g_email = gr.Textbox(label="Google Email")
+                    s_g_pass = gr.Textbox(label="Google Password", type="password")
 
             save_btn = gr.Button("Save Settings", variant="primary")
             save_status = gr.Textbox(label="Status", interactive=False, max_lines=1)
@@ -343,11 +450,13 @@ with gr.Blocks(title="Job Agent") as demo:
                 s_titles, s_location, s_salary, s_exp, s_skills, s_blacklist,
                 s_max_apps, s_delay,
                 s_li_email, s_li_pass, s_in_email, s_in_pass, s_gl_email, s_gl_pass,
+                s_use_google, s_g_email, s_g_pass,
             ]
             _settings_outputs = [
                 s_titles, s_location, s_salary, s_exp, s_skills, s_blacklist,
                 s_max_apps, s_delay,
                 s_li_email, s_li_pass, s_in_email, s_in_pass, s_gl_email, s_gl_pass,
+                s_use_google, s_g_email, s_g_pass,
             ]
 
             save_btn.click(settings_save, inputs=_settings_inputs, outputs=[save_status])

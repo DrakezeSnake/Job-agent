@@ -9,6 +9,8 @@ from playwright.async_api import TimeoutError as PWTimeout
 from rich.console import Console
 
 from src.browser.browser_manager import human_delay, human_type
+from src.browser.captcha import wait_if_captcha
+from src.browser.google_auth import click_google_button_and_login
 from src.job_boards.base import ApplyResult, JobBoard, JobListing
 
 console = Console()
@@ -18,11 +20,6 @@ BASE_URL = "https://www.glassdoor.com"
 
 class Glassdoor(JobBoard):
     async def login(self) -> None:
-        creds = self.prefs.get_credentials("glassdoor")
-        if not creds.email or not creds.password:
-            console.print("[yellow]Glassdoor credentials not set — skipping login.[/yellow]")
-            return
-
         await self.page.goto(f"{BASE_URL}/profile/login_input.htm", wait_until="domcontentloaded")
         await human_delay(800, 1500)
 
@@ -33,16 +30,36 @@ class Glassdoor(JobBoard):
         except PWTimeout:
             pass
 
+        await wait_if_captcha(self.page)
+
+        # Google login
+        if self.prefs.use_google_login:
+            g = self.prefs.google_credentials
+            if g.email and g.password:
+                console.print("[cyan]Glassdoor: signing in with Google...[/cyan]")
+                await click_google_button_and_login(self.page, g.email, g.password)
+                await wait_if_captcha(self.page)
+                console.print("[green]Glassdoor: logged in via Google.[/green]")
+                return
+
+        # Email / password login
+        creds = self.prefs.get_credentials("glassdoor")
+        if not creds.email or not creds.password:
+            console.print("[yellow]Glassdoor credentials not set — skipping login.[/yellow]")
+            return
+
         try:
             await human_type(self.page, '#userEmail', creds.email)
             await human_delay(300, 600)
             await self.page.click('[name="submit"]')
             await human_delay(800, 1500)
+            await wait_if_captcha(self.page)
             await human_type(self.page, '#userPassword', creds.password)
             await human_delay(300, 600)
             await self.page.click('[name="submit"]')
             await self.page.wait_for_load_state("domcontentloaded")
             await human_delay(1500, 2500)
+            await wait_if_captcha(self.page)
             console.print("[green]Glassdoor: logged in.[/green]")
         except Exception as e:
             console.print(f"[red]Glassdoor login error: {e}[/red]")

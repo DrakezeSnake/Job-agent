@@ -11,6 +11,8 @@ from playwright.async_api import Page, TimeoutError as PWTimeout
 from rich.console import Console
 
 from src.browser.browser_manager import human_delay, human_type
+from src.browser.captcha import wait_if_captcha
+from src.browser.google_auth import click_google_button_and_login
 from src.job_boards.base import ApplyResult, JobBoard, JobListing
 
 if TYPE_CHECKING:
@@ -23,21 +25,33 @@ BASE_URL = "https://www.linkedin.com"
 
 class LinkedIn(JobBoard):
     async def login(self) -> None:
-        creds = self.prefs.get_credentials("linkedin")
-        if not creds.email or not creds.password:
-            console.print("[yellow]LinkedIn credentials not set — skipping login.[/yellow]")
-            return
-
         await self.page.goto(f"{BASE_URL}/login", wait_until="domcontentloaded")
         await human_delay(800, 1500)
 
         try:
-            # Check if already logged in
             await self.page.wait_for_selector("#global-nav", timeout=3000)
             console.print("[green]LinkedIn: already logged in.[/green]")
             return
         except PWTimeout:
             pass
+
+        await wait_if_captcha(self.page)
+
+        # Google login
+        if self.prefs.use_google_login:
+            g = self.prefs.google_credentials
+            if g.email and g.password:
+                console.print("[cyan]LinkedIn: signing in with Google...[/cyan]")
+                await click_google_button_and_login(self.page, g.email, g.password)
+                await wait_if_captcha(self.page)
+                console.print("[green]LinkedIn: logged in via Google.[/green]")
+                return
+
+        # Email / password login
+        creds = self.prefs.get_credentials("linkedin")
+        if not creds.email or not creds.password:
+            console.print("[yellow]LinkedIn credentials not set — skipping login.[/yellow]")
+            return
 
         await human_type(self.page, "#username", creds.email)
         await human_delay(300, 700)
@@ -46,6 +60,7 @@ class LinkedIn(JobBoard):
         await self.page.click('[type="submit"]')
         await self.page.wait_for_load_state("domcontentloaded")
         await human_delay(1500, 3000)
+        await wait_if_captcha(self.page)
         console.print("[green]LinkedIn: logged in.[/green]")
 
     async def search(self) -> list[JobListing]:

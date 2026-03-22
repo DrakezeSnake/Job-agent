@@ -17,5 +17,7 @@
     "linkedin": {"email": "", "password": ""},
     "indeed": {"email": "", "password": ""},
     "glassdoor": {"email": "", "password": ""}
-  }
+  },
+  "use_google_login": false,
+  "google_credentials": {"email": "", "password": ""}
 }

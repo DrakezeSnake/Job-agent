@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 from typing import Callable, Type
+from urllib.parse import urlparse
 
 from rich.console import Console
 from rich.table import Table
@@ -193,6 +194,161 @@ class ApplicationEngine:
                 await page.close()
 
         self._print_summary(applied_count)
+
+    async def run_single_url(
+        self,
+        url: str,
+        title: str = "",
+        company: str = "",
+    ) -> None:
+        """Apply to a single job URL directly, skipping the search step."""
+        prefs = self.prefs
+        prefs.db_path.parent.mkdir(parents=True, exist_ok=True)
+        prefs.generated_dir.mkdir(parents=True, exist_ok=True)
+        prefs.session_path.mkdir(parents=True, exist_ok=True)
+        await init_db(str(prefs.db_path))
+
+        # Detect board from URL
+        board_name = "external"
+        if "linkedin.com" in url:
+            board_name = "linkedin"
+        elif "indeed.com" in url:
+            board_name = "indeed"
+        elif "glassdoor.com" in url:
+            board_name = "glassdoor"
+        self._console.print(f"Detected board: {board_name}")
+
+        async with BrowserManager(
+            headless=prefs.headless,
+            session_path=prefs.session_path / "browser_state.json",
+        ) as browser:
+            page = await browser.new_page()
+
+            # Login if it's a known board
+            if board_name in BOARD_MAP:
+                board_cls = BOARD_MAP[board_name]
+                board = board_cls(
+                    page=page,
+                    prefs=prefs,
+                    repo=self.repo,
+                    qa_memory=self.qa_memory,
+                    dry_run=self.dry_run,
+                )
+                try:
+                    await board.login()
+                except Exception as e:
+                    self._console.print(f"Login failed: {e} — continuing without login")
+            else:
+                board = None
+
+            # Navigate and scrape job details
+            self._console.print(f"Navigating to: {url}")
+            await page.goto(url, wait_until="domcontentloaded")
+            await asyncio.sleep(2)
+
+            # Scrape title from page if not supplied
+            if not title:
+                try:
+                    h1 = await page.query_selector("h1")
+                    title = (await h1.inner_text()).strip() if h1 else ""
+                except Exception:
+                    pass
+            if not title:
+                title = (await page.title()).strip() or "Unknown Position"
+
+            # Derive company from domain if not supplied
+            if not company:
+                try:
+                    parsed = urlparse(url)
+                    host = parsed.netloc.replace("www.", "")
+                    company = host.split(".")[0].title()
+                except Exception:
+                    company = "Unknown Company"
+
+            # Get page body as job description
+            description = ""
+            try:
+                body = await page.query_selector("body")
+                if body:
+                    description = (await body.inner_text()).strip()[:5000]
+            except Exception:
+                pass
+
+            job = JobListing(
+                title=title,
+                company=company,
+                board=board_name,
+                url=url,
+                description=description,
+            )
+            self._console.print(f"Applying to: {job.title} @ {job.company}")
+
+            await self.repo.upsert_job(job)
+            if await self.repo.already_applied(url):
+                self._console.print("Already applied to this job — skipping.")
+                return
+
+            # Generate tailored resume
+            try:
+                resume_dict = await self.resume_gen.generate(job)
+            except Exception as e:
+                self._console.print(f"Resume generation failed: {e}")
+                await self.repo.mark_skipped(url, f"resume_gen_error:{e}")
+                return
+
+            # Generate cover letter
+            try:
+                cl_text = await self.cl_gen.generate(job, resume_dict.get("summary", ""))
+            except Exception as e:
+                self._console.print(f"Cover letter generation failed: {e} — continuing without")
+                cl_text = ""
+
+            # Build PDFs
+            job_key = PDFBuilder.job_key(job.company, job.title)
+            try:
+                resume_pdf = self.pdf_builder.build_resume(resume_dict, job_key)
+                cl_pdf, _ = self.pdf_builder.build_cover_letter(
+                    cl_text, job_key, resume_dict.get("personal", {}).get("name", "")
+                )
+            except Exception as e:
+                self._console.print(f"PDF build failed: {e}")
+                await self.repo.mark_skipped(url, f"pdf_error:{e}")
+                return
+
+            # Apply
+            try:
+                if board is not None:
+                    result = await board.apply(job, str(resume_pdf), str(cl_pdf))
+                else:
+                    from src.job_boards.base import ApplyResult
+                    from src.job_boards.external import apply_on_external_site
+                    if self.dry_run:
+                        result = ApplyResult(
+                            success=True, job_url=url,
+                            resume_path=str(resume_pdf), cover_letter_path=str(cl_pdf),
+                            notes="dry_run",
+                        )
+                    else:
+                        success = await apply_on_external_site(
+                            page, job, str(resume_pdf), str(cl_pdf), self.qa_memory
+                        )
+                        result = ApplyResult(
+                            success=success, job_url=url,
+                            resume_path=str(resume_pdf), cover_letter_path=str(cl_pdf),
+                        )
+            except Exception as e:
+                from src.job_boards.base import ApplyResult
+                result = ApplyResult(success=False, job_url=url, notes=str(e))
+
+            await self.repo.record_result(job, result)
+
+            if result.success:
+                self._console.print("[green]Applied successfully![/green]")
+            else:
+                self._console.print(f"[red]Application failed: {result.notes}[/red]")
+
+        if self.dry_run:
+            self._console.print("[yellow]DRY RUN — no actual submission was made.[/yellow]")
 
     def _print_summary(self, applied_count: int) -> None:
         self._console.rule("[bold]Run Complete[/bold]")
