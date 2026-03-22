@@ -276,7 +276,7 @@ def qa_clear():
 
 # ── Build UI ─────────────────────────────────────────────────────────────────
 
-with gr.Blocks(title="Job Agent", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="Job Agent") as demo:
     gr.Markdown("# Job Application Agent")
     gr.Markdown("Automated job search and application powered by Claude AI")
 
@@ -302,7 +302,6 @@ with gr.Blocks(title="Job Agent", theme=gr.themes.Soft()) as demo:
                         max_lines=28,
                         autoscroll=True,
                         placeholder="Log output appears here when the agent runs...",
-                        show_copy_button=True,
                     )
 
             start_btn.click(
@@ -434,4 +433,4 @@ with gr.Blocks(title="Job Agent", theme=gr.themes.Soft()) as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860, inbrowser=True)
+    demo.launch(server_name="0.0.0.0", server_port=7860, inbrowser=True, theme=gr.themes.Soft())
