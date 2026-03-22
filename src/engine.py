@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Type
+from typing import Callable, Type
 
 from rich.console import Console
 from rich.table import Table
@@ -32,6 +32,20 @@ BOARD_MAP: dict[str, Type[JobBoard]] = {
 }
 
 
+class _UIWriter:
+    """Thin file-like wrapper that forwards Rich output to a log_fn callback."""
+
+    def __init__(self, log_fn: Callable[[str], None]) -> None:
+        self._fn = log_fn
+
+    def write(self, text: str) -> None:
+        if text.strip():
+            self._fn(text)
+
+    def flush(self) -> None:
+        pass
+
+
 class ApplicationEngine:
     def __init__(
         self,
@@ -39,14 +53,26 @@ class ApplicationEngine:
         dry_run: bool = False,
         limit: int | None = None,
         boards: list[str] | None = None,
+        log_fn: Callable[[str], None] | None = None,
     ) -> None:
         self.prefs = prefs
         self.dry_run = dry_run
         self.limit = limit or prefs.max_applications_per_run
         self.boards = boards or prefs.boards
 
+        # When a log_fn is provided (UI mode), send Rich output there instead of stdout.
+        if log_fn is not None:
+            self._console = Console(
+                file=_UIWriter(log_fn),
+                markup=False,
+                highlight=False,
+                no_color=True,
+            )
+        else:
+            self._console = console
+
         self.repo = JobRepository(prefs.db_path)
-        self.qa_memory = QAMemory(prefs.db_path)
+        self.qa_memory = QAMemory(prefs.db_path, ui_mode=log_fn is not None)
         self.resume_gen = ResumeGenerator(prefs.anthropic_api_key, prefs.resume_path)
         self.cl_gen = CoverLetterGenerator(prefs.anthropic_api_key)
         self.pdf_builder = PDFBuilder(prefs.generated_dir)
@@ -71,7 +97,7 @@ class ApplicationEngine:
 
                 board_cls = BOARD_MAP.get(board_name)
                 if not board_cls:
-                    console.print(f"[red]Unknown board: {board_name}[/red]")
+                    self._console.print(f"[red]Unknown board: {board_name}[/red]")
                     continue
 
                 page = await browser.new_page()
@@ -83,24 +109,24 @@ class ApplicationEngine:
                     dry_run=self.dry_run,
                 )
 
-                console.rule(f"[bold blue]{board_name.title()}[/bold blue]")
+                self._console.rule(f"[bold blue]{board_name.title()}[/bold blue]")
 
                 # Login
                 try:
                     await board.login()
                 except Exception as e:
-                    console.print(f"[red]Login failed for {board_name}: {e}[/red]")
+                    self._console.print(f"[red]Login failed for {board_name}: {e}[/red]")
                     continue
 
                 # Search
-                console.print(f"Searching {board_name} for: {', '.join(prefs.job_titles)}")
+                self._console.print(f"Searching {board_name} for: {', '.join(prefs.job_titles)}")
                 try:
                     jobs = await board.search()
                 except Exception as e:
-                    console.print(f"[red]Search failed for {board_name}: {e}[/red]")
+                    self._console.print(f"[red]Search failed for {board_name}: {e}[/red]")
                     continue
 
-                console.print(f"Found [bold]{len(jobs)}[/bold] listings on {board_name}.")
+                self._console.print(f"Found [bold]{len(jobs)}[/bold] listings on {board_name}.")
 
                 for job in jobs:
                     if applied_count >= self.limit:
@@ -111,16 +137,16 @@ class ApplicationEngine:
 
                     # Skip if already applied
                     if await self.repo.already_applied(job.url):
-                        console.print(f"[dim]Skipping (already applied): {job.title} @ {job.company}[/dim]")
+                        self._console.print(f"[dim]Skipping (already applied): {job.title} @ {job.company}[/dim]")
                         continue
 
-                    console.print(f"\n[bold]Applying:[/bold] {job.title} @ {job.company} [{board_name}]")
+                    self._console.print(f"\n[bold]Applying:[/bold] {job.title} @ {job.company} [{board_name}]")
 
                     # Generate tailored resume
                     try:
                         resume_dict = await self.resume_gen.generate(job)
                     except Exception as e:
-                        console.print(f"[red]Resume generation failed: {e}[/red]")
+                        self._console.print(f"[red]Resume generation failed: {e}[/red]")
                         await self.repo.mark_skipped(job.url, f"resume_gen_error:{e}")
                         continue
 
@@ -128,7 +154,7 @@ class ApplicationEngine:
                     try:
                         cl_text = await self.cl_gen.generate(job, resume_dict.get("summary", ""))
                     except Exception as e:
-                        console.print(f"[yellow]Cover letter generation failed: {e} — continuing without.[/yellow]")
+                        self._console.print(f"[yellow]Cover letter generation failed: {e} — continuing without.[/yellow]")
                         cl_text = ""
 
                     # Build PDFs
@@ -139,7 +165,7 @@ class ApplicationEngine:
                             cl_text, job_key, resume_dict.get("personal", {}).get("name", "")
                         )
                     except Exception as e:
-                        console.print(f"[red]PDF build failed: {e}[/red]")
+                        self._console.print(f"[red]PDF build failed: {e}[/red]")
                         await self.repo.mark_skipped(job.url, f"pdf_error:{e}")
                         continue
 
@@ -154,14 +180,14 @@ class ApplicationEngine:
 
                     if result.success:
                         applied_count += 1
-                        console.print(f"[green]Applied! ({applied_count}/{self.limit})[/green]")
+                        self._console.print(f"[green]Applied! ({applied_count}/{self.limit})[/green]")
                     else:
-                        console.print(f"[red]Failed: {result.notes}[/red]")
+                        self._console.print(f"[red]Failed: {result.notes}[/red]")
 
                     # Human-like delay between applications
                     if not self.dry_run and applied_count < self.limit:
                         delay = prefs.delay_between_applications_seconds
-                        console.print(f"[dim]Waiting {delay}s before next application...[/dim]")
+                        self._console.print(f"[dim]Waiting {delay}s before next application...[/dim]")
                         await asyncio.sleep(delay)
 
                 await page.close()
@@ -169,7 +195,7 @@ class ApplicationEngine:
         self._print_summary(applied_count)
 
     def _print_summary(self, applied_count: int) -> None:
-        console.rule("[bold]Run Complete[/bold]")
-        console.print(f"Applications submitted: [bold green]{applied_count}[/bold green]")
+        self._console.rule("[bold]Run Complete[/bold]")
+        self._console.print(f"Applications submitted: [bold green]{applied_count}[/bold green]")
         if self.dry_run:
-            console.print("[yellow]DRY RUN — no actual submissions were made.[/yellow]")
+            self._console.print("[yellow]DRY RUN — no actual submissions were made.[/yellow]")

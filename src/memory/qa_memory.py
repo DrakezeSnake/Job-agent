@@ -30,8 +30,9 @@ def _normalize(text: str) -> str:
 
 
 class QAMemory:
-    def __init__(self, db_path: str | Path) -> None:
+    def __init__(self, db_path: str | Path, ui_mode: bool = False) -> None:
         self._repo = QAMemoryRepository(db_path)
+        self._ui_mode = ui_mode
 
     async def find_answer(self, question: str) -> tuple[str, str] | None:
         """
@@ -60,7 +61,17 @@ class QAMemory:
         return None
 
     async def ask_user_and_store(self, question: str, input_type: str = "text") -> str:
-        """Prompt the user interactively, store the answer, and return it."""
+        """Prompt the user interactively, store the answer, and return it.
+
+        In UI mode, the question cannot be answered interactively — log a warning
+        and return an empty string so the calling code can handle it gracefully.
+        """
+        if self._ui_mode:
+            console.print(
+                f"[yellow]UI mode: unanswered question (add it in Q&A Memory tab): {question[:80]}[/yellow]"
+            )
+            return ""
+
         console.print(f"\n[bold yellow]New application question:[/bold yellow]")
         console.print(f"[cyan]{question}[/cyan]")
         if input_type == "radio":
