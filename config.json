@@ -1,9 +1,12 @@
 {
-  "job_titles": ["Software Engineer", "Backend Engineer"],
+  "job_titles": ["Art Director", "Creative Lead", "Senior Game Designer", "Game Production Manager", "Creative Director"],
   "location": "Remote",
-  "salary_min": 120000,
+  "salary_min": 24000,
   "experience_years": 5,
-  "skills": ["Python", "AWS", "PostgreSQL"],
+  "skills": [
+    "Art Direction", "Game Design", "Visual Style Guides", "Agile", "Adobe Creative Suite",
+    "GDD", "VR", "Mobile Games", "PC Games", "Team Leadership", "Narrative Design"
+  ],
   "blacklisted_companies": [],
   "max_applications_per_run": 20,
   "headless": false,

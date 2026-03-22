@@ -1,48 +1,127 @@
 {
   "personal": {
-    "name": "Your Name",
-    "email": "you@example.com",
-    "phone": "+1 (555) 000-0000",
-    "linkedin": "https://linkedin.com/in/yourprofile",
-    "github": "https://github.com/yourusername"
+    "name": "Ziad Tarek Osman Abbas",
+    "email": "z.eltoukhy@gmail.com",
+    "phone": "+20 10 1981 9522",
+    "linkedin": "https://linkedin.com/in/ziad-tarek",
+    "github": ""
   },
-  "summary": "Experienced software engineer with 5+ years building scalable backend systems. Passionate about clean architecture, developer experience, and delivering reliable products at scale.",
+  "summary": "Art Director and Creative Lead with over five years of experience in the gaming industry, specializing in visual storytelling and immersive player experiences. Expert in defining visual, audio, and narrative guidelines to ensure cohesive game worlds. Proven track record of directing cross-functional art teams, managing creative pipelines, and optimizing asset production for PC, mobile, and VR titles. Adept at bridging the gap between creative innovation and technical feasibility.",
   "experience": [
     {
-      "company": "Example Corp",
-      "title": "Senior Software Engineer",
-      "start": "Jan 2022",
+      "company": "RAWA GAMES",
+      "title": "Art Director & Senior Game Designer",
+      "start": "Jun 2023",
       "end": "Present",
       "bullets": [
-        "Led redesign of data ingestion pipeline reducing latency by 40%",
-        "Mentored 3 junior engineers and ran weekly technical design reviews",
-        "Introduced OpenTelemetry-based observability across 12 microservices"
+        "Lead the development and implementation of visual, audio, and narrative guidelines ensuring a cohesive and immersive player experience.",
+        "Direct a team of artists and optimize internal workflows to maintain visual consistency and high-quality standards across all game assets and marketing materials.",
+        "Design core gameplay systems for PC and mobile titles, ensuring mechanics align with the established artistic and creative vision.",
+        "Author detailed Game Design Documents (GDDs) and facilitate collaboration between design and engineering teams to balance innovation with technical feasibility."
       ]
     },
     {
-      "company": "Startup Inc",
-      "title": "Software Engineer",
-      "start": "Jun 2019",
-      "end": "Dec 2021",
+      "company": "YUR\u00ae",
+      "title": "Game Production Manager",
+      "start": "Feb 2023",
+      "end": "Apr 2024",
       "bullets": [
-        "Built REST APIs serving 5M+ requests per day using Python and FastAPI",
-        "Migrated monolithic PostgreSQL schema to event-driven architecture with Kafka",
-        "Reduced infrastructure costs by 30% through AWS resource optimisation"
+        "Led the development of VR fitness applications, balancing creative ambitions with technical constraints to deliver polished, user-centric products.",
+        "Collaborated with engineering teams to ensure design intent was maintained throughout the development cycle."
+      ]
+    },
+    {
+      "company": "GREEN RABBIT GAMES",
+      "title": "Design Manager",
+      "start": "Oct 2021",
+      "end": "Feb 2023",
+      "bullets": [
+        "Directed art and creative pipelines for live-service PC and mobile games, ensuring efficient asset delivery.",
+        "Collaborated with executive leadership to align creative direction with business goals and developed production schedules using Agile methodologies.",
+        "Conceptualized and developed 3D race maps and created in-game features, leading a team of artists to ensure a cohesive vision.",
+        "Spearheaded the creation of engaging tutorials and lore videos, managing scriptwriting and video editing to support the game's narrative."
+      ]
+    },
+    {
+      "company": "ARABHARDWARE",
+      "title": "Lead Content Creator",
+      "start": "Jan 2020",
+      "end": "Aug 2021",
+      "bullets": [
+        "Oversaw the production schedule for the gaming team, including scriptwriting and video editing.",
+        "Conducted interviews with developers to provide exclusive insights and narratives for upcoming games."
+      ]
+    },
+    {
+      "company": "MINT AND CO.",
+      "title": "Social Media Executive",
+      "start": "Jan 2019",
+      "end": "Jan 2020",
+      "bullets": [
+        "Led creative pitches to clients and managed communication for promotional campaigns."
+      ]
+    },
+    {
+      "company": "MASREYA MEDIA",
+      "title": "Project Manager",
+      "start": "Mar 2017",
+      "end": "Jan 2019",
+      "bullets": [
+        "Facilitated communication for major clients including Netflix, Disney Channel, and AAA game studios.",
+        "Managed the full production lifecycle (pre-production, production, post-production) to ensure creative requirements were met."
+      ]
+    },
+    {
+      "company": "QNB AL-AHLI",
+      "title": "Product Manager",
+      "start": "Sep 2015",
+      "end": "Mar 2017",
+      "bullets": [
+        "Spearheaded the development of new youth products and created targeted marketing campaigns."
       ]
     }
   ],
   "education": [
     {
-      "school": "State University",
-      "degree": "B.S. Computer Science",
-      "year": "2019"
+      "school": "The American University in Cairo",
+      "degree": "B.A. Communication and Media Arts (Theater Minor)",
+      "year": "2014"
+    },
+    {
+      "school": "The American University in Cairo \u2014 Adham Center",
+      "degree": "Professional Diploma: Video Editing, Multi-Camera and Studio Directing",
+      "year": "2018"
+    },
+    {
+      "school": "Dar El Tarbiah",
+      "degree": "International General Certificate of Secondary Education (IGCSE)",
+      "year": "2008"
     }
   ],
   "skills": [
-    "Python", "Go", "TypeScript", "AWS", "PostgreSQL", "Redis",
-    "Kafka", "Docker", "Kubernetes", "FastAPI", "Django", "React"
+    "Art Direction",
+    "Visual Style Guides",
+    "Art Pipeline Management",
+    "Asset Quality Assurance",
+    "Narrative Design",
+    "Game Design",
+    "Level Design",
+    "3D Environment Concepts",
+    "User-Centered Design",
+    "Gameplay Mechanics",
+    "Agile Methodologies",
+    "Cross-functional Team Leadership",
+    "Scope Management",
+    "Game Design Documents (GDD)",
+    "Digital Video Editing",
+    "Scriptwriting",
+    "Storyboarding",
+    "Adobe Creative Suite",
+    "Microsoft Office Suite",
+    "VR Development",
+    "Mobile Game Development",
+    "PC Game Development",
+    "Live-Service Games"
   ],
-  "certifications": [
-    "AWS Certified Solutions Architect – Associate"
-  ]
+  "certifications": []
 }
