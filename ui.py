@@ -65,7 +65,7 @@ def run_agent(selected_boards: list[str], dry_run: bool, headless: bool, limit: 
             from src.engine import ApplicationEngine
 
             try:
-                prefs = load_config(str(CONFIG_PATH))
+                prefs = load_config(CONFIG_PATH)
                 prefs.headless = headless
                 engine = ApplicationEngine(
                     prefs=prefs,
